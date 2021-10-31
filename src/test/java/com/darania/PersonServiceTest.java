@@ -6,11 +6,17 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.InstanceOfAssertFactories.OPTIONAL;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 
@@ -34,12 +40,6 @@ class PersonServiceTest {
         // TODO: create an instance of underTest and pass personDAO into it
 
         PersonDAO = mock(PersonDAO.class);
-
-       /* savePerson = mock(PersonDAO.class);
-        deletePerson = mock(PersonDAO.class);
-        getPeople = mock(PersonDAO.class);
-        getPersonById = mock(PersonDAO.class);*/
-
         underTest = new PersonService(PersonDAO);
 
     }
@@ -58,11 +58,15 @@ class PersonServiceTest {
 
         //given
         Person person = new Person(5, "Lily", 27);
+        when(PersonDAO.savePerson(person)).thenReturn(1);
 
         //when
-        underTest.savePerson(person);
+        int result = underTest.savePerson(person);
 
         //then
+        assertThat(result).isEqualTo(1);
+
+        //Captor
         ArgumentCaptor<Person> personArgumentCaptor = ArgumentCaptor.forClass(Person.class);
 
         verify(PersonDAO).savePerson(personArgumentCaptor.capture());
@@ -76,46 +80,29 @@ class PersonServiceTest {
 
     @Test
     void itCanDeletePerson() {
-    //if person's ID doesn't exist then delete person.
+    //if person's ID exists then delete person.
+
         //given
         Person person = new Person(5, "Lily", 27);
-        List<Person> getPeople = mock(List.class);
+        List<Person> people = List.of(person);
+
         //when
-//        underTest.savePerson(person);
-//
-//        //then - capture our person in Argument Captor
-//        ArgumentCaptor<Person> personArgumentCaptor = ArgumentCaptor.forClass(Person.class);
-//        //verifying whether PersonDAO was called with save method, and we are
-//        // capturing the person passed into it
-//        verify(PersonDAO).savePerson(personArgumentCaptor.capture());
-//
-//        Person capturedPerson = personArgumentCaptor.getValue();
+        //teaching our mock what to do by returning the people list
+        when(PersonDAO.getPeople()).thenReturn(people);
+        when(PersonDAO.deletePerson(5)).thenReturn(1);
 
-        getPeople.add(person);
-        verify(getPeople).add(person);
+        //then
+        int result = underTest.deletePerson(5);
+        assertThat(result).isEqualTo(1);
 
-        when(underTest.getPeople()).thenReturn(getPeople);
+        //Captor
+        ArgumentCaptor<Integer> captor = ArgumentCaptor.forClass(Integer.class);
 
-        //performing the deletion
-        underTest.deletePerson(person.getId());
-        //checking if
-        assertThat(getPeople).isEmpty();
+        //verifying this method was evoked and capturing it.
+        verify(PersonDAO).deletePerson(captor.capture());
+        Integer capturedValue = captor.getValue();
 
-        //when(underTest.deletePerson(5)).thenReturn(person.getId()).thenReturn(null);
-
-        //assertThat(underTest.getPeople()).isEmpty();
-
-        //when(underTest.getPersonById(5)).thenReturn(person).thenReturn(null);
-
-//        int result = underTest.deletePerson(5);
-//
-//        verify(underTest, times(1)).deletePerson(person.getId());
-
-        //assertThat(result, equalTo(true));
-      //  assertThat(result).isNull();
-
-        //Person removed = underTest.getPersonById(5);
-
+        assertThat(capturedValue).isEqualTo(5);
 
     }
 
@@ -126,19 +113,62 @@ class PersonServiceTest {
         underTest.getPeople();
 
         //then
-       verify(PersonDAO).getPeople();
+        verify(PersonDAO).getPeople();
 
 
     }
+
+    @Captor
+    private ArgumentCaptor<Integer> captorTwo;
 
     @Test
     void canGetPersonById() {
 
         //given
+        Person person = new Person(5, "Lily", 27);
+        List<Person> people = List.of(person);
 
-        //when
-      //  underTest.getPersonById();
+        //mocking PersonDAO
+        when(PersonDAO.getPeople()).thenReturn(people);
+
+        //when - because in PersonDAO get person by ID is listed as optional
+        Optional<Person> actual = underTest.getPersonById(5);
+
         //then
+        assertThat(actual).isEqualTo(Optional.of(person));
+
+    }
+
+    @Test
+    void willNotSaveWhenPersonHasEmptyFields() {
+
+       /* Person person = new Person(null, "", null);
+
+        when(PersonDAO.savePerson(person)).thenReturn(1);
+
+        underTest.savePerson(person);
+
+        assertThatThrownBy(() -> underTest.savePerson(person))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Person cannot have empty fields");
+
+        verifyNoInteractions(savePerson);*/
+    }
+
+    @Test
+    void willThrowWhenIdAlreadyExists() {
+       /* Person person = new Person(5, "Lily", 27);
+
+        given(underTest.getPersonById(5)).willReturn(false);
+
+        assertThatThrownBy(() -> underTest.getPersonById(5))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("person with id " + person.getId() + " already exists");*/
+
+    }
+
+    @Test
+    void willThrowWhenIdDoesNotAlreadyExist() {
 
 
     }
